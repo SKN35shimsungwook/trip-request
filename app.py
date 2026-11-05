@@ -41,7 +41,7 @@ COURSES = {
 
 DAY2 = "🌲 둘째 날은 셋 다 곤지암 화담숲 숲길 산책으로 마무리"
 
-STEPS = ["신청", "코스", "한 번 더", "완성"]
+STEPS = ["신청", "코스", "완성"]
 
 # ---------------------------------------------------------------------------
 # 상태
@@ -49,7 +49,7 @@ STEPS = ["신청", "코스", "한 번 더", "완성"]
 ss = st.session_state
 ss.setdefault("step", 0)
 ss.setdefault("course", None)  # "A" | "B" | "C"
-ss.setdefault("switched", False)  # '한 번 더' 화면에서 코스를 바꿨는지
+ss.setdefault("switched", False)  # 확정한 뒤에 코스를 바꿨는지
 
 
 def go(step: int) -> None:
@@ -62,10 +62,9 @@ def pick_course(key: str) -> None:
 
 
 def switch_course(key: str) -> None:
-    """'한 번 더' 화면에서 다른 코스로 마음을 바꾼다."""
+    """확정한 뒤 확인서 화면에서 다른 코스로 마음을 바꾼다. 화면은 그대로 두고 확인서만 바뀐다."""
     ss.course = key
     ss.switched = True
-    go(3)
 
 
 def restart() -> None:
@@ -306,17 +305,13 @@ def page_course() -> None:
     st.html(f'<p class="hint">{DAY2}</p>')
     left, right = st.columns(2)
     left.button("← 이전", on_click=go, args=(0,), width="stretch")
-    right.button("다음 💕", on_click=go, args=(2,), type="primary", disabled=not ss.course, width="stretch")
+    right.button("이걸로 결정! 💕", on_click=go, args=(2,), type="primary", disabled=not ss.course, width="stretch")
 
 
-def page_second_look() -> None:
-    progress()
-    mine = COURSES[ss.course]
-    st.markdown("## 🤔 잠깐, 한 번만 더!")
-    st.html(
-        f'<p class="hint">{mine["emoji"]} <b>{escape(mine["name"])}</b> 좋지~ '
-        "근데 다른 코스도 이런 매력이 있어서 한 번만 보여 줄게</p>"
-    )
+def other_courses() -> None:
+    """확정한 뒤에 보여 주는 '근데 이런 매력도 있어' 카드. 누르면 확인서가 그 코스로 바뀐다."""
+    st.markdown("### 🤔 근데 이런 매력도 있는데...")
+    st.html('<p class="hint">확정은 했지만, 마음 바뀌면 지금 바꿔도 돼!</p>')
     others = [k for k in COURSES if k != ss.course]
     cols = st.columns(len(others))
     for col, key in zip(cols, others):
@@ -329,15 +324,6 @@ def page_second_look() -> None:
                 args=(key,),
                 width="stretch",
             )
-    left, right = st.columns(2)
-    left.button("← 다시 고르기", on_click=go, args=(1,), width="stretch")
-    right.button(
-        f"그래도 {mine['emoji']} {ss.course}코스!",
-        on_click=go,
-        args=(3,),
-        type="primary",
-        width="stretch",
-    )
 
 
 def plan_text() -> str:
@@ -374,14 +360,13 @@ def page_done() -> None:
         type="primary",
         width="stretch",
     )
-    left, right = st.columns(2)
-    left.button("← 코스 다시 고르기", on_click=go, args=(1,), width="stretch")
-    right.button("처음부터 다시", on_click=restart, width="stretch")
+    other_courses()
+    st.button("처음부터 다시", on_click=restart, width="stretch")
 
 
-PAGES = [page_ask, page_course, page_second_look, page_done]
-if ss.step > 0 and not ss.course:
-    ss.step = 1 if ss.step > 1 else ss.step
+PAGES = [page_ask, page_course, page_done]
+if ss.step > 1 and not ss.course:
+    ss.step = 1
 if ss.step != len(PAGES) - 1:
     ss.celebrated = False
 PAGES[ss.step]()
